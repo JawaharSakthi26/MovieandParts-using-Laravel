@@ -30,7 +30,8 @@ class MovieController extends Controller
      */
     public function store(Request $request)
     {
-        $titleName = $request->title;
+        // dd($request);
+        $titleName = $request->title_name;
         $existingTitle = Title::where('title_name', $titleName)->first();
         if ($existingTitle) {
             $title = $existingTitle;
@@ -52,7 +53,6 @@ class MovieController extends Controller
                 ]);
             }
         }
-    
         return redirect()->route('listmovie.index');
     }
     
@@ -73,8 +73,14 @@ class MovieController extends Controller
         $title = Title::findOrFail($id);
         $movies = Movie::where('title_id', $id)->get();
         $parts = Part::whereIn('movie_id', $movies->pluck('id'))->get();
-    
-        return view('app.index', compact('title', 'movies', 'parts'));
+        
+        $data = [
+            'title' => $title,
+            'movies' => $movies,
+            'parts' => $parts,
+        ];
+
+        return view('app.index', compact('data'));
     }
     /**
      * Update the specified resource in storage.

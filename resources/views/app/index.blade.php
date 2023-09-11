@@ -1,4 +1,4 @@
-@extends('layouts.app')
+{{-- @extends('layouts.app')
 
 @section('content')
 <div class="container">
@@ -137,6 +137,116 @@
         });
     }
 });
+</script>
+@endsection --}}
+
+@extends('layouts.app')
+@section('content')
+<div class="container mt-5">
+    <h1>Add Movies</h1>
+
+    @if (isset($data['movies']))
+        @php
+            $moviesJson = json_encode($data['movies']);
+            $partsJson = json_encode($data['parts']);
+        @endphp
+    @endif
+        
+        
+    <form method="POST" action="{{route('addmovie.store')}}">
+        @csrf <!-- Add CSRF token for security -->
+        
+        <div class="mb-3">
+            <!-- Title textbox -->
+            <label for="title" class="form-label">Title:</label>
+            <input type="text" id="title" name="title_name" class="form-control" value="{{ isset($data['title']) ? $data['title']->title_name : '' }}" required>
+        </div>
+
+        <!-- Container to hold movie fields -->
+        <div id="movies-container"></div>
+
+        <!-- Add Movie button -->
+        <button type="button" id="add-movie" class="btn btn-primary mb-3">Add Movie</button>
+
+        <!-- Submit button -->
+        <button type="submit" class="btn btn-success mb-3">Submit</button>
+    </form>
+</div>
+
+<script>
+    // jQuery code for adding movie fields
+    $(document).ready(function() {
+        let movieCount = 0;
+
+        var movieData = {!! $moviesJson !!};
+        var partData = {!! $partsJson !!};
+
+        // Now you can work with the JSON data in JavaScript
+        console.log(movieData);
+        console.log(partData);
+
+        // Function to add movie and part fields based on JSON data
+        function addMovieAndParts(movieData) {
+            movieCount++;
+            const movieField = `
+                <div class="movie mb-3 p-3 border" id="movie-${movieCount}">
+                    <label for="movie-name-${movieCount}" class="form-label">Movie Name:</label>
+                    <input type="text" id="movie-name-${movieCount}" name="movie_name[]" value="${movieData.movie_name  || ''} " class="form-control" required>
+                    <button type="button" class="add-part btn btn-primary mt-2">Add Part</button>
+                    <button type="button" class="remove-movie btn btn-danger mt-2">Remove Movie</button>
+                    <div class="parts-container mt-2" id="parts-container-${movieCount}"></div>
+                </div>
+            `;
+
+            $('#movies-container').append(movieField);
+                    console.log('hello');
+                
+                    //need to work from here!! ---> parts are not populating in the fields
+            if (movieData.partData && movieData.partData.length > 0) {
+                movieData.partData.forEach(function(partData) {
+                    addPart(movieCount, partData);
+                });
+            }
+        }
+        // Function to add a part field to a movie
+        function addPart(movieId, partData) {
+
+            const partField = `
+                <div class="part mb-2">
+                    <label for="part-${movieId}-name" class="form-label">Part Name:</label>
+                    <input type="text" id="part-${movieId}-name" name="part_name[${movieId - 1}][]" value="${partData.part_name}" class="form-control" required>
+                    <button type="button" class="remove-part btn btn-danger mt-2">Remove Part</button>
+                </div>
+            `;
+
+            $(`#parts-container-${movieId}`).append(partField);
+
+            // till here
+            }
+
+            // Add movies and parts based on the JSON data
+            $.each(movieData, function(movieId, movieData) {
+                addMovieAndParts(movieData);
+            });
+
+            // jQuery code for adding/removing movie parts
+            $('#add-movie').click(function() {
+                addMovieAndParts({ movie_name: '', parts: [] }); // Add a new empty movie with no parts
+            });
+
+            $('#movies-container').on('click', '.add-part', function() {
+                const movieId = $(this).closest('.movie').attr('id').split('-')[1];
+                addPart(movieId, '');
+            });
+
+            $('#movies-container').on('click', '.remove-movie', function() {
+                $(this).closest('.movie').remove();
+            });
+
+            $('#movies-container').on('click', '.remove-part', function() {
+                $(this).closest('.part').remove();
+            });
+            });
 </script>
 
 @endsection
