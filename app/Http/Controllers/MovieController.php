@@ -33,6 +33,7 @@ class MovieController extends Controller
         // dd($request);
         $titleName = $request->title_name;
         $existingTitle = Title::where('title_name', $titleName)->first();
+
         if ($existingTitle) {
             $title = $existingTitle;
         } else {
@@ -40,21 +41,26 @@ class MovieController extends Controller
                 'title_name' => $titleName,
             ]);
         }
-        $moviesData = $request->movie_name;
-        foreach ($moviesData as $k => $movieData) {
-            $movie = Movie::create([
-                'title_id' => $title->id,
-                'movie_name' => $movieData,
+        $moviesData = $request->movies;
+        foreach ($moviesData as $movieData) {
+            $movie = $title->movies()->create([
+                'title_id' => $title->id, 
+                'movie_name' => $movieData['name'],
             ]);
-            foreach ($request->part_name[$k] as $part) {
-                Part::create([
-                    'movie_id' => $movie->id,
-                    'part_name' => $part,
-                ]);
+
+            if (isset($movieData['parts']) && is_array($movieData['parts']['partName']) && count($movieData['parts']['partName']) > 0) {
+                foreach ($movieData['parts']['partName'] as $partName) {
+                    $movie->parts()->create([
+                        'movie_id' => $movie->id,
+                        'part_name' => $partName,
+                    ]);
+                }
             }
         }
         return redirect()->route('listmovie.index');
     }
+
+
     
     /**
      * Display the specified resource.
@@ -69,67 +75,65 @@ class MovieController extends Controller
      */
     public function edit($id)
     {
-        // Fetch the title, movies, and parts data based on the ID
-        $title = Title::findOrFail($id);
-        $movies = Movie::where('title_id', $id)->get();
-        $parts = Part::whereIn('movie_id', $movies->pluck('id'))->get();
-        
+        $title = Title::with('movies.parts')->findOrFail($id);
+        $movies = $title->movies;
         $data = [
             'title' => $title,
             'movies' => $movies,
-            'parts' => $parts,
         ];
-
         return view('app.index', compact('data'));
     }
+    
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)
     {
-    $title = Title::updateOrCreate(
-        ['id' => $id],
-        ['title_name' => $request->input('title')]
-    );
+        $titleData = [
+            'title_name' => $request->input('title_name'),
+        ];
 
-    $movieIds = $request->input('movie_id');
-    Movie::where('title_id', $title->id)->whereNotIn('id', $movieIds)->delete();
+        if ($request->has('title_id')) {
+            $title = Title::findOrFail($request->input('title_id'));
+            $title->update([
+                'title_name' => $titleData['title_name'],
+            ]);
+        }
+        $updatedMovieIds = [];
+        foreach ($request->input('movies') as $movieData) {
+            if (isset($movieData['id'])) {
+                $movie = Movie::findOrFail($movieData['id']);
+                $movie->update([
+                    'movie_name' => $movieData['name'],
+                ]);
+                $updatedMovieIds[] = $movie->id;
+            } else {
+                $movie = Movie::create([
+                    'title_id' => $title->id,
+                    'movie_name' => $movieData['name'],
+                ]);
+                $updatedMovieIds[] = $movie->id;
+            }
 
-    foreach ($request->input('movie_name') as $index => $movieName) {
-        $movieId = $request->input("movie_id.$index");
-    
-        $movie = Movie::updateOrCreate(
-            ['id' => $movieId, 'title_id' => $title->id],
-            ['movie_name' => $movieName]
-        );
-
-        $partNames = $request->input("part_name.$movieId");
-        $partIds = $request->input("part_id.$movieId");
-    
-        if (is_array($partNames)) {
-            $existingPartIds = $movie->parts()->pluck('id')->toArray();
-            $partsToDelete = array_diff($existingPartIds, $partIds);
-            Part::whereIn('id', $partsToDelete)->delete();
-    
-            foreach ($partNames as $partIndex => $partName) {
-                $partId = $partIds[$partIndex] ?? null;
-                if ($partId === null) {
-                    Part::create([
+            if (isset($movieData['parts']) && isset($movieData['parts']['partName']) && isset($movieData['parts']['partId'])) {
+                foreach ($movieData['parts']['partName'] as $key => $partName) {
+                    $partData = [
                         'movie_id' => $movie->id,
                         'part_name' => $partName,
-                    ]);
-                } else {
-                    $part = Part::updateOrCreate(
-                        ['id' => $partId, 'movie_id' => $movie->id],
-                        ['part_name' => $partName]
-                    );
+                    ];
+
+                    if (isset($movieData['parts']['partId'][$key])) {
+                        $partData['id'] = $movieData['parts']['partId'][$key];
+                        $part = Part::findOrFail($partData['id']);
+                        $part->update($partData);
+                    } else {
+                        Part::create($partData);
+                    }
                 }
             }
-        }
+        } 
+        return redirect()->route('listmovie.index');
     }
-    
-    return redirect()->route('listmovie.index');
-}
 
     
     /**
