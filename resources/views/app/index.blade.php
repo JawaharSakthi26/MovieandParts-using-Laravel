@@ -29,44 +29,39 @@
 </div>
 
 <script>
-    let movieCount = 0;
-    $(document).ready(function() {
-        // jQuery code for adding/removing movie parts
-        $('#add-movie').click(function() {
-            addMovieAndParts({ movie_name: '', parts: [] });
+    @if(isset($data))
+        var movieData = @json($data['movies']);
+        $(document).ready(function() {
+            movieData.forEach(function(movie) {
+                addMovieAndParts(movie);
+            });
         });
-        $('#movies-container').on('click', '.add-part', function() {
-            const movieId = $(this).closest('.movie').attr('id').split('-')[1];
-            addPart(movieId);
-        });
-        $('#movies-container').on('click', '.remove-movie', function() {
-            $(this).closest('.movie').remove();
-        });
-        $('#movies-container').on('click', '.remove-part', function() {
-            $(this).closest('.part').remove();
-        });
-    });
+    @endif
 
+    let movieCount = 0;
     function addMovieAndParts(movieData) {
         movieCount++;
         const movieId = movieCount; 
+        console.log(movieId);
         const movieField = `
             <div class="movie mb-3 p-3 border" id="movie-${movieId}">
                 <label for="movie-name-${movieId}" class="form-label">Movie Name:</label>
-                <input type="text" id="movie-name-${movieId}" name="movies[${movieId}][name]" value="${movieData.movie_name || ''}" class="form-control" required>
-                <input type="hidden" id="movie-id-${movieId}" name="movies[${movieId}][id]" value="${movieData.id || ''}" class="form-control" required>
+                <input type="text" id="movie-name-${movieId}" name="movies[${movieId}][name]" value="${movieData ? movieData.movie_name : ''}" class="form-control" required>
+                <input type="hidden" id="movie-id-${movieId}" name="movies[${movieId}][id]" value="${movieData ? movieData.id : ''}" class="form-control" required>
                 <button type="button" class="add-part btn btn-primary mt-2" data-movieId="${movieId}">Add Part</button>
                 <button type="button" class="remove-movie btn btn-danger mt-2">Remove Movie</button>
                 <div class="parts-container mt-2" id="parts-container-${movieId}"></div>
             </div>
         `;
         $('#movies-container').append(movieField);
-
+        
+        @if (isset($data))
         if (movieData.parts && movieData.parts.length > 0) {
             movieData.parts.forEach(function(partData) {
                 addPart(movieId, partData);
             });
         }
+        @endif
     }
 
     function addPart(movieId, partData) {
@@ -82,11 +77,19 @@
         $(`#parts-container-${movieId}`).append(partField);
     }
 
-    @if (isset($data))
-        @foreach ($data['movies'] as $movieData)
-            addMovieAndParts(@json($movieData));
-        @endforeach
-    @endif
+    $('#add-movie').click(function() {
+            addMovieAndParts();
+        });
+    $('#movies-container').on('click', '.add-part', function() {
+        const movieId = $(this).data('movieId');
+        addPart(movieId);
+    });
+    $('#movies-container').on('click', '.remove-movie', function() {
+        $(this).closest('.movie').remove();
+    });
+    $('#movies-container').on('click', '.remove-part', function() {
+        $(this).closest('.part').remove();
+    });
     
 </script>
 @endsection

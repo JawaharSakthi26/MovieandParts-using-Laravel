@@ -76,10 +76,9 @@ class MovieController extends Controller
     public function edit($id)
     {
         $title = Title::with('movies.parts')->findOrFail($id);
-        $movies = $title->movies;
         $data = [
             'title' => $title,
-            'movies' => $movies,
+            'movies' => $title->movies,
         ];
         return view('app.index', compact('data'));
     }
@@ -131,7 +130,8 @@ class MovieController extends Controller
                     }
                 }
             }
-        } 
+        }
+        $title->movies()->whereNotIn('id', $updatedMovieIds)->delete();
         return redirect()->route('listmovie.index');
     }
 
