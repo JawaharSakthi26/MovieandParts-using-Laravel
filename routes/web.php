@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\task2\FormController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,3 +22,4 @@ Route::get('/', function () {
 
 Route::resource('addmovie',MovieController::class);
 Route::resource('listmovie',ListController::class);
+Route::resource('form',FormController::class);

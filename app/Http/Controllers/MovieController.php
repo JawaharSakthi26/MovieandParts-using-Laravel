@@ -31,16 +31,19 @@ class MovieController extends Controller
     public function store(Request $request)
     {
         // dd($request);
-        $titleName = $request->title_name;
-        $existingTitle = Title::where('title_name', $titleName)->first();
+        // $titleName = $request->title_name;
+        // $existingTitle = Title::where('title_name', $titleName)->first();
 
-        if ($existingTitle) {
-            $title = $existingTitle;
-        } else {
-            $title = Title::create([
-                'title_name' => $titleName,
-            ]);
-        }
+        // if ($existingTitle) {
+        //     $title = $existingTitle;
+        // } else {
+        //     $title = Title::create([
+        //         'title_name' => $titleName,
+        //     ]);
+        // }
+        $title = Title::create([
+            'title_name' => $request->title_name,
+        ]);
         $moviesData = $request->movies;
         foreach ($moviesData as $movieData) {
             $movie = $title->movies()->create([
@@ -88,17 +91,14 @@ class MovieController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $titleData = [
-            'title_name' => $request->input('title_name'),
-        ];
+        $title = Title::findorFail($id);
+        $title->update([
+            'title_name' => $request->title_name,
+        ]);
 
-        if ($request->has('title_id')) {
-            $title = Title::findOrFail($request->input('title_id'));
-            $title->update([
-                'title_name' => $titleData['title_name'],
-            ]);
-        }
         $updatedMovieIds = [];
+        $updatedPartIds = [];
+
         foreach ($request->input('movies') as $movieData) {
             if (isset($movieData['id'])) {
                 $movie = Movie::findOrFail($movieData['id']);
@@ -113,8 +113,7 @@ class MovieController extends Controller
                 ]);
                 $updatedMovieIds[] = $movie->id;
             }
-
-            if (isset($movieData['parts']) && isset($movieData['parts']['partName']) && isset($movieData['parts']['partId'])) {
+            if (isset($movieData['parts'])) {
                 foreach ($movieData['parts']['partName'] as $key => $partName) {
                     $partData = [
                         'movie_id' => $movie->id,
@@ -125,16 +124,23 @@ class MovieController extends Controller
                         $partData['id'] = $movieData['parts']['partId'][$key];
                         $part = Part::findOrFail($partData['id']);
                         $part->update($partData);
+                        $updatedPartIds[] = $part->id;
                     } else {
-                        Part::create($partData);
+                        $part =  Part::create($partData);
+                        $updatedPartIds[] = $part->id;
                     }
                 }
             }
         }
+ 
         $title->movies()->whereNotIn('id', $updatedMovieIds)->delete();
+
+        $title->movies->each(function ($movie) use ($updatedPartIds) {
+            $movie->parts()->whereNotIn('id', $updatedPartIds)->delete();
+        });
+ 
         return redirect()->route('listmovie.index');
     }
-
     
     /**
      * Remove the specified resource from storage.

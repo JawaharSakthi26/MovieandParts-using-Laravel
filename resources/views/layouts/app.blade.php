@@ -7,7 +7,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{asset('/assets/plugins/bootstrap-5.0.2-dist/css/bootstrap.min.css') }}">    
     <script src="{{ asset('/assets/plugins/jquery/jquery.min.js') }}"></script>
-
+    <script src="{{ asset('/assets/plugins/jquery-validation/jquery.validate.min.js') }}"></script>
+    <style>
+        .error {
+            color: red; 
+        }
+    </style>
     <title>Add Movie</title>
 </head>
 <body>
